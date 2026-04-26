@@ -49,6 +49,8 @@ O que observar:
 - Seu `api-gateway` deve expor a porta `50052`.
 - Fique de olho nos logs: o serviço Swift avisará quando um canal for **Iniciado** ou **Destruído**.
 
+No estado inicial do repositório, o `api-gateway` expõe o contrato gRPC, mas o método `StreamTranslation` ainda retorna `UNIMPLEMENTED`. Isso é intencional: o desafio dos participantes é implementar o canal efêmero dentro do gateway.
+
 ## 🏆 Critérios de Aceite
 
 - **Ciclo de Vida:** o log do Swift deve mostrar `Encerrando canal X` assim que o cliente terminar o stream.
@@ -59,9 +61,29 @@ O que observar:
 
 - O gRPC-Swift é muito sensível ao fechamento de streams. Certifique-se de que o seu Gateway está enviando o sinal de `end` corretamente.
 - Cuidado com o acúmulo de dados em memória. Faça o **pipe** dos dados, não o **buffer**.
+- O "canal" do desafio é o próprio stream bidirecional gRPC. Não crie um banco, fila ou endpoint REST para representar esse recurso.
+- O `channel_id` vem do cliente e deve atravessar o gateway sem ser recriado.
 
-## Fornecemos um script video-client-tester.js. Para testar:
+## 🧪 Teste de Aceite
 
-- Coloque um arquivo chamado test-video.mp4 na raiz.
-- Execute node video-client-tester.js.
+Fornecemos o script `client-tester.js` para validar a implementação do gateway. Antes da solução dos participantes, esse script deve falhar com `UNIMPLEMENTED` ou terminar sem legendas; depois da implementação correta, ele deve receber legendas e o serviço Swift deve encerrar o canal ao fim do stream.
+
+Instalar dependências:
+
+```Bash
+npm install @grpc/grpc-js @grpc/proto-loader
+```
+
+Subir o Ambiente:
+
+```Bash
+docker compose up --build
+```
+
+Executar o Script:
+
+```Bash
+node client-tester.js
+```
+
 - Observe os logs do service-translation: se o gerenciamento de canais estiver correto, você verá os chunks chegando e o canal sendo encerrado ao fim do vídeo.

@@ -1,97 +1,28 @@
 import * as grpc from "@grpc/grpc-js";
 import { TranslationPackage } from "./proto";
 
-type VideoFrame = {
-  data?: Buffer;
-  channelId?: string;
-};
-
-type TranslationResult = {
-  text?: string;
-  channelId?: string;
-};
-
 type Dependencies = {
   translationPackage: TranslationPackage;
   translationTarget: string;
 };
 
 export function createTranslationProxyHandlers(deps: Dependencies): grpc.UntypedServiceImplementation {
+  void deps;
+
   return {
-    streamTranslation: (clientCall: grpc.ServerDuplexStream<VideoFrame, TranslationResult>) => {
-      const translationClient = new deps.translationPackage.TranslationProvider(
-        deps.translationTarget,
-        grpc.credentials.createInsecure()
-      ) as unknown as grpc.Client & {
-        streamTranslation: () => grpc.ClientDuplexStream<VideoFrame, TranslationResult>;
-      };
-
-      const upstreamCall = translationClient.streamTranslation();
-      let closed = false;
-
-      const closePipe = () => {
-        if (closed) {
-          return;
-        }
-
-        closed = true;
-        translationClient.close();
-      };
-
-      upstreamCall.on("data", (result: TranslationResult) => {
-        clientCall.write(result);
-      });
-
-      upstreamCall.on("end", () => {
-        // Participante: este é um ponto natural para destruir o canal efêmero
-        // depois que o service-translation encerrar a stream upstream.
-        clientCall.end();
-        closePipe();
-      });
-
-      upstreamCall.on("error", (error: grpc.ServiceError) => {
-        clientCall.destroy(error);
-        closePipe();
-      });
-
-      clientCall.on("data", (frame: VideoFrame) => {
-        const channelId = frame.channelId ?? "";
-
-        if (!channelId.trim()) {
-          const serviceError = Object.assign(new Error("channel_id is required on every frame"), {
-            code: grpc.status.INVALID_ARGUMENT
-          });
-
-          // Participante: ao rejeitar um frame inválido, cancele o upstream para
-          // matar imediatamente o contexto efêmero aberto para este pipe.
-          upstreamCall.cancel();
-          clientCall.destroy(serviceError);
-          closePipe();
-          return;
-        }
-
-        upstreamCall.write(frame);
-      });
-
-      clientCall.on("end", () => {
-        // Participante: implemente aqui a política de kill do canal quando o
-        // downstream finalizar normalmente, por exemplo limpando métricas locais.
-        upstreamCall.end();
-      });
-
-      clientCall.on("error", () => {
-        // Participante: cancelamento/erro downstream deve matar o canal upstream
-        // para liberar memória no service-translation imediatamente.
-        upstreamCall.cancel();
-        closePipe();
-      });
-
-      clientCall.on("cancelled", () => {
-        // Participante: clientes podem cancelar sem emitir end; trate este caso
-        // como destruição explícita do canal efêmero.
-        upstreamCall.cancel();
-        closePipe();
-      });
+    streamTranslation: (clientCall: grpc.ServerDuplexStream<unknown, unknown>) => {
+      // TODO: implementar o canal efemero entre cliente e service-translation.
+      // O canal deve ser o proprio stream bidirecional gRPC, sem persistencia externa.
+      // Requisitos principais:
+      // - abrir um stream upstream para deps.translationTarget;
+      // - encaminhar frames sem acumular o video em memoria;
+      // - validar e preservar channel_id em todos os frames;
+      // - encerrar/cancelar o upstream quando o cliente finalizar, errar ou cancelar.
+      clientCall.destroy(
+        Object.assign(new Error("StreamTranslation must be implemented by participants"), {
+          code: grpc.status.UNIMPLEMENTED
+        })
+      );
     }
   };
 }
