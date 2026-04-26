@@ -59,4 +59,9 @@ O que observar:
 
 - O gRPC-Swift é muito sensível ao fechamento de streams. Certifique-se de que o seu Gateway está enviando o sinal de `end` corretamente.
 - Cuidado com o acúmulo de dados em memória. Faça o **pipe** dos dados, não o **buffer**.
-  s
+
+## Fornecemos um script video-client-tester.js. Para testar:
+
+- Coloque um arquivo chamado test-video.mp4 na raiz.
+- Execute node video-client-tester.js.
+- Observe os logs do service-translation: se o gerenciamento de canais estiver correto, você verá os chunks chegando e o canal sendo encerrado ao fim do vídeo.
