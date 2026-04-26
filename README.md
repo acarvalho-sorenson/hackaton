@@ -1,76 +1,61 @@
-# Hackathon Video Translation gRPC Monorepo
+# 🚀 Hackathon: Real-Time gRPC Video Stream Translation
 
-Monorepo inicial para tradução de vídeo usando gRPC com HTTP/2 e bidirectional streaming.
+Bem-vindo ao desafio de backend! Sua missão é construir uma **API Gateway de alta performance** que gerencie streams bidirecionais de vídeo e texto, garantindo latência mínima e gerenciamento eficiente de recursos.
 
-## Arquitetura
+## 🏗️ A Arquitetura
 
-```text
+O sistema é composto por três partes, mas você é responsável pelo coração da operação:
+
+- **Client (Mock):** envia chunks de vídeo e espera legendas em tempo real.
+- **API Gateway (Seu Desafio):** atua como um proxy inteligente que cria e destrói "canais" efêmeros via gRPC.
+- **Translation Service (Provedor):** serviço robusto em Swift (Vapor) que processa o vídeo e devolve a tradução.
+
+## 🎯 A Missão
+
+Você deve implementar a lógica no `api-gateway` para:
+
+- **Pipe de Dados:** receber o stream do cliente e repassar imediatamente para o serviço Swift.
+- **Efemeridade:** o "canal" não é um banco de dados, é a própria conexão. Se a conexão cair ou terminar, o recurso deve ser liberado no Provedor.
+- **Resiliência:** lidar com desconexões abruptas sem deixar "zumbis" ou vazamentos de memória no serviço de tradução.
+
+## 🛠️ Requisitos Técnicos & Restrições
+
+- **Comunicação:** 100% gRPC (HTTP/2). Proibido o uso de REST ou bibliotecas HTTP 1.1.
+- **Contrato:** o arquivo `protos/translation.proto` é a única fonte da verdade.
+- **Recursos:** o serviço Swift está limitado a **256 MB de RAM**. Gerenciamento de buffer ineficiente causará Out of Memory (OOM).
+- **Linguagem:** o Gateway deve ser escrito em **Node.js (TypeScript)** ou **Go**.
+
+## 📂 Estrutura do Projeto
+
+```plaintext
 .
-├── protos
-│   └── translation.proto
-├── service-translation
-│   ├── Dockerfile
-│   ├── Package.swift
-│   ├── Scripts
-│   │   └── generate-protos.sh
-│   └── Sources
-│       └── App
-│           ├── Generated
-│           ├── Services
-│           │   └── MockTranslationProvider.swift
-│           └── main.swift
-├── api-gateway
-│   ├── Dockerfile
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src
-│       ├── channels
-│       │   └── ChannelSessionManager.ts
-│       ├── generated
-│       │   └── README.md
-│       ├── grpc
-│       │   ├── ChannelManagerServer.ts
-│       │   ├── TranslationProxyServer.ts
-│       │   └── proto.ts
-│       └── index.ts
-└── docker-compose.yaml
+├── protos/                 # Contrato gRPC (.proto)
+├── service-translation/    # [ORGANIZAÇÃO] Serviço Swift/Vapor (Não mexer)
+├── api-gateway/            # [VOCÊ] Esqueleto do seu desafio
+└── docker-compose.yaml     # Orquestração do ambiente
 ```
 
-## Serviços
+## 🚀 Como Iniciar
 
-- `service-translation`: Swift 5.9 + Vapor + grpc-swift na porta `50051`.
-- `api-gateway`: Node.js + TypeScript + grpc-js na porta `50052`.
-- `/protos/translation.proto`: contrato compartilhado entre os serviços.
-
-## Execução
-
-Na raiz do projeto, execute:
+Suba o ambiente:
 
 ```bash
 docker compose up --build
 ```
 
-Esse comando constrói as imagens Docker e sobe os dois serviços gRPC:
+O que observar:
 
-- `service-translation` em `localhost:50051`.
-- `api-gateway` em `localhost:50052`.
+- O `service-translation` rodará em `localhost:50051`.
+- Seu `api-gateway` deve expor a porta `50052`.
+- Fique de olho nos logs: o serviço Swift avisará quando um canal for **Iniciado** ou **Destruído**.
 
-Para parar os containers:
+## 🏆 Critérios de Aceite
 
-```bash
-docker compose down
-```
+- **Ciclo de Vida:** o log do Swift deve mostrar `Encerrando canal X` assim que o cliente terminar o stream.
+- **Imutabilidade:** o `channel_id` enviado pelo cliente deve ser preservado e validado em todos os frames.
+- **Concorrência:** o gateway deve suportar múltiplos clientes simultâneos, cada um com seu próprio canal efêmero.
 
-## Contratos gRPC
+## 💡 Dicas de Ouro
 
-- `TranslationProvider.StreamTranslation`: stream bidirecional de `VideoFrame` para `TranslationResult`.
-- `ChannelManager.CreateChannel`: cria uma sessão lógica de canal no gateway.
-- `ChannelManager.KillChannel`: marca uma sessão lógica como encerrada no gateway.
-
-O gateway expõe `TranslationProvider` e encaminha o stream para `service-translation`. O provider Swift responde cada frame com `Legenda mockada`, preservando o `channel_id`.
-
-## Restrições
-
-- Não há endpoint REST/HTTP 1.1.
-- Toda comunicação exposta entre cliente, gateway e provider é gRPC sobre HTTP/2.
-- O build Docker copia `/protos` para ambos os serviços e gera os stubs Swift no estágio de build do provider.
+- O gRPC-Swift é muito sensível ao fechamento de streams. Certifique-se de que o seu Gateway está enviando o sinal de `end` corretamente.
+- Cuidado com o acúmulo de dados em memória. Faça o **pipe** dos dados, não o **buffer**.
