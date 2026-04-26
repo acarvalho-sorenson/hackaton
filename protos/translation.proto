@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package translation.v1;
+
+option go_package = "github.com/hackathon/video-translation/protos;translationv1";
+
+service TranslationProvider {
+  // Each bidirectional stream is an ephemeral channel. Clients MUST send a
+  // non-empty channel_id on every VideoFrame; servers MUST reject empty values.
+  rpc StreamTranslation(stream VideoFrame) returns (stream TranslationResult);
+}
+
+message VideoFrame {
+  bytes data = 1;
+
+  // Required by contract on every frame. In proto3 this is enforced by service
+  // validation because scalar fields do not support the legacy required label.
+  string channel_id = 2;
+}
+
+message TranslationResult {
+  string text = 1;
+  string channel_id = 2;
+}

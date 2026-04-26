@@ -1,0 +1,31 @@
+services:
+  service-translation:
+    build:
+      context: .
+      dockerfile: service-translation/Dockerfile
+    cpus: "0.50"
+    mem_limit: 256m
+    mem_reservation: 128m
+    ports:
+      - "50051:50051"
+    networks:
+      - video-translation
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      PORT: "50052"
+      PROTO_PATH: /workspace/protos/translation.proto
+      TRANSLATION_SERVICE_ADDR: service-translation:50051
+    ports:
+      - "50052:50052"
+    depends_on:
+      - service-translation
+    networks:
+      - video-translation
+
+networks:
+  video-translation:
+    driver: bridge
