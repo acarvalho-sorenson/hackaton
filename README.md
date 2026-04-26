@@ -59,3 +59,4 @@ O que observar:
 
 - O gRPC-Swift é muito sensível ao fechamento de streams. Certifique-se de que o seu Gateway está enviando o sinal de `end` corretamente.
 - Cuidado com o acúmulo de dados em memória. Faça o **pipe** dos dados, não o **buffer**.
+  s
