@@ -2,6 +2,10 @@ import Foundation
 import GRPC
 import NIOCore
 
+func logChannelEvent(_ message: String) {
+    FileHandle.standardOutput.write(Data("\(message)\n".utf8))
+}
+
 final class TranslationProvider: Translation_V1_TranslationProviderProvider {
     var interceptors: Translation_V1_TranslationProviderServerInterceptorFactoryProtocol?
 
@@ -10,18 +14,25 @@ final class TranslationProvider: Translation_V1_TranslationProviderProvider {
     ) -> EventLoopFuture<(StreamEvent<Translation_V1_VideoFrame>) -> Void> {
         var channelID: String?
         var isClosed = false
+        var inputEnded = false
+        var pendingResponses = 0
 
         func closeChannel(status: GRPCStatus) {
             guard !isClosed else { return }
             isClosed = true
 
             if let channelID {
-                print("Encerrando/Destruindo canal \(channelID)")
+                logChannelEvent("Encerrando/Destruindo canal \(channelID)")
             } else {
-                print("Encerrando/Destruindo canal desconhecido")
+                logChannelEvent("Encerrando/Destruindo canal desconhecido")
             }
 
             context.statusPromise.succeed(status)
+        }
+
+        func finishIfDrained() {
+            guard inputEnded && pendingResponses == 0 else { return }
+            closeChannel(status: .ok)
         }
 
         let handler: (StreamEvent<Translation_V1_VideoFrame>) -> Void = { event in
@@ -41,13 +52,19 @@ final class TranslationProvider: Translation_V1_TranslationProviderProvider {
 
                 if channelID == nil {
                     channelID = frameChannelID
-                    print("Iniciando canal \(frameChannelID)")
+                    logChannelEvent("Iniciando canal \(frameChannelID)")
                 }
 
-                print("Processando stream no canal \(frameChannelID)")
+                logChannelEvent("Processando stream no canal \(frameChannelID)")
 
                 let delayMilliseconds = Int64.random(in: 25...150)
+                pendingResponses += 1
                 context.eventLoop.scheduleTask(in: .milliseconds(delayMilliseconds)) {
+                    defer {
+                        pendingResponses -= 1
+                        finishIfDrained()
+                    }
+
                     guard !isClosed else { return }
 
                     var result = Translation_V1_TranslationResult()
@@ -57,7 +74,8 @@ final class TranslationProvider: Translation_V1_TranslationProviderProvider {
                 }
 
             case .end:
-                closeChannel(status: .ok)
+                inputEnded = true
+                finishIfDrained()
             }
         }
 
