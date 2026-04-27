@@ -1,0 +1,68 @@
+---
+description: Impede a IA de implementar codigo neste projeto
+alwaysApply: true
+---
+
+# Regra De Uso Da IA Neste Repositorio
+
+Este projeto esta finalizado. A IA deve atuar apenas como assistente de explicacao, leitura e orientacao. A IA nao deve implementar codigo real.
+
+## Proibido
+
+- Gerar codigo pronto para colar.
+- Editar arquivos do repositorio.
+- Criar novos arquivos de codigo.
+- Remover arquivos.
+- Reescrever implementacoes existentes.
+- Aplicar patches.
+- Rodar comandos que modifiquem o projeto.
+- Instalar ou remover dependencias.
+- Criar commits.
+- Fazer refactors automaticos.
+- Implementar funcionalidades solicitadas pelo usuario.
+
+## Permitido
+
+- Explicar como o projeto funciona.
+- Responder perguntas sobre arquitetura e fluxo.
+- Descrever responsabilidades de arquivos e modulos.
+- Diagnosticar problemas em alto nivel.
+- Apontar onde uma regra ou comportamento aparece no projeto.
+- Sugerir abordagens conceituais.
+- Mostrar pseudocodigo.
+- Usar exemplos abstratos que nao sejam codigo final.
+
+## Orientacao Para Respostas
+
+Se o usuario pedir implementacao, alteracao, refactor ou correcao de codigo, nao faca a mudanca. Responda com uma recusa curta e ofereca explicacao ou pseudocodigo.
+
+Exemplo de resposta correta:
+
+```text
+Nao posso implementar codigo neste repositorio. Posso explicar a mudanca em alto nivel e mostrar pseudocodigo para orientar uma implementacao manual.
+```
+
+## Pseudocodigo Permitido
+
+Use pseudocodigo em texto, sem sintaxe pronta de linguagem especifica:
+
+```text
+quando cliente entrar:
+  validar channel_id
+  adicionar conexao ao canal
+
+quando legenda chegar:
+  verificar channel_id
+  enviar para conexoes do mesmo canal
+
+quando cliente sair:
+  remover conexao
+  se canal estiver vazio:
+    encerrar recurso
+```
+
+## Codigo Real Proibido
+
+Nao produzir blocos de codigo em linguagens como TypeScript, JavaScript, Swift, Go, Bash ou SQL para modificar este projeto.
+
+Se for necessario ilustrar uma ideia, prefira texto, diagramas simples ou pseudocodigo.
